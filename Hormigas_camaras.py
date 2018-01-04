@@ -102,11 +102,21 @@ def evaluarSala(sala):
 def procesarCamara(cam, loca):
 	# Si la hormiga no es loca
 	if loca == 0:
+		if cam[0] - distMax < 0:
+			low = 0
+		else:
+			low = cam[0] - distMax 
 
+		if cam[0] + distMax > cols:
+			high = cols
+		else:
+			high = cam[0] + distMax
+
+		x = random.triangular(low, high, mode)
 	else:
-
-
-	return [x, y]
+		hola = 1
+	return [cam[0], cam[1]]
+	#return [x, y]
 
 # Algoritmo que crea una sala teniendo en cuenta los datos de la anterior
 def crearSala(sala, loca):
@@ -115,8 +125,7 @@ def crearSala(sala, loca):
 		# Se obtiene la posición de cada cámara
 		[x, y] = procesarCamara(salaNew.camaras[i], loca)
 		# Se coloca cada cámara en la sala nueva, en la nueva posición
-		salaNew.camaras[i][0] = x
-		salaNew.camaras[i][1] = y
+		salaNew.camaras[i] = [x, y]
 	
 	#Se devuelve la nueva sala
 	return salaNew
@@ -153,7 +162,7 @@ def hormigas(sala):
 	# Por cada hormiga
 	for i in range(numHormigas):
 		# marco si es loca
-		if rand(0,numLocas) == 1:
+		if random.randint(0,numLocas) == 1:
 			loca = 1
 		# creo una sala basándome en la anterior
 		salaNueva = crearSala(sala, loca)
@@ -187,7 +196,7 @@ if __name__ == '__main__':
 	
 	# Busco una solución aceptable con el algoritmo de las hormigas
 	while sala.fit>umbral:
-		sala = hormigas()
+		sala = hormigas(sala)
 
 	# Muestro la solución final
 	print 'Solucion:', sala.camaras, 'fit', sala.fit
