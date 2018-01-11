@@ -43,6 +43,7 @@ class MyWindow(QtGui.QMainWindow, form_class):
         self.cols.setText('100')
         self.focus.setText('35')
         self.numCameras.setText('6')
+        #self.connect(self.numCameras, SIGNAL("textEdited()"), self.borrar)
         self.distPower.setText('0.5')
         self.pheromPower.setText('0.5')
         self.evaporation.setText('0.9')
@@ -59,3 +60,6 @@ class MyWindow(QtGui.QMainWindow, form_class):
         # Evaluation
         space.evaluateSpace()
         space.startAlgorithm()
+
+    #def borrar(self):
+        #self.qle_texto.setText("hola")

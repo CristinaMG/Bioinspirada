@@ -28,19 +28,19 @@ distMax = 2 * focus
 # Filas
 rows = 50
 # Columnas
-cols = 2 * rows
+cols = 100
 
-plt.ion()
-fig, ax = plt.subplots()  # note we must use plt.subplots, not plt.subplot
+ancho = rows
+largo = 100
+
 colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
-draw_iterations = 10
-draw_index = 10  # So it shows the first iteration
+fig, ax = plt.subplots()  # note we must use plt.subplots, not plt.subplot
 
 # Main class that creates a set of cameras
 class Space:
     def __init__(self):
-        self.wall1 = np.zeros(cols)
-        self.wall2 = np.zeros(cols)
+        self.wall1 = np.ones(cols)
+        self.wall2 = np.ones(cols)
         self.cameras = []
         self.color = []
         for i in range(numCameras):
@@ -71,14 +71,14 @@ class Space:
 
         for a in range(numCameras):
             if self.cameras[a][0] == 0:
-                list1.append(self.cameras[a][1])
+                list1.append(self.cameras[a][1]*largo/cols)
             else:
-                list2.append(self.cameras[a][1])
+                list2.append(self.cameras[a][1]*largo/cols)
 
         list1.append(0)
-        list1.append(cols)
+        list1.append(largo)
         list2.append(0)
-        list2.append(cols)
+        list2.append(largo)
         list1.sort()
         list2.sort()
 
@@ -114,29 +114,43 @@ class Space:
 
     # Function that places each camera in a new position based on its probability
     def processCamera(self, cam, crazy):
-        if cam[1] - focus < 0:
+        large = cam[1] * largo/cols
+        if large - focus < 0:
             low = 0
         else:
-            low = cam[1] - focus
+            low = large - focus
 
-        if cam[1] + focus > cols:
+        if large + focus > cols:
             high = cols
         else:
-            high = cam[1] + focus
+            high = large + focus
 
-        y = int(random.triangular(low, high))  # it colud be the gaussian
+        y = int(random.triangular(low, high))
 
         # If the ant is not crazy
         '''if crazy == 0:
-    		y = int(influenciapher*y + (1-influenciapher))'''
+            mode = 0
+            if cam[0] == 0:
+                for i in range(cols):
+                    if self.wall1[i] > mode:
+                        mode = self.wall1[i]
+            else:
+                for i in range(cols):
+                    if self.wall2[i] > mode:
+                        mode = self.wall2[i]
+
+            print 'mode1',mode
+            mode = mode*influenciapher + cam[1]*(1-influenciapher)
+            print 'mode2',mode
+            y = int(random.triangular(low, mode, high))'''
 
         x = cam[0]
-
-        # 1% of the time it changes from wall
-        if random.randint(0, 100) == 1:
-            if x == 0:
+        if x == 0:
+            # Cam changes from wall depending on the pheromones
+            if random.uniform(0, 1) < 0.1*self.wall2[y]:
                 x == rows
-            else:
+        else:
+            if random.uniform(0, 1) < 0.1*self.wall1[y]:
                 x == 0
 
         return [x, y]
@@ -155,13 +169,18 @@ class Space:
 
 
     # Mark the pheromones of the route
-    def markPheromones(self):
+    def markPheromones(self, crazy):
+        if crazy == 0:
+            input = 1
+        else: #if it is a crazy ant its input is bigger
+            input = 5
+
         for i in range(numCameras):
-            x = self.cameras[i][1]
             if self.cameras[i][0] == 0:
-                self.wall1[self.cameras[i][1]] += 1
+                self.wall1[self.cameras[i][1]] += input
             else:
-                self.wall2[self.cameras[i][1]] += 1
+                self.wall2[self.cameras[i][1]] += input
+
 
     # Evaporates the trace of pheromones in each iteration
     def evaporatePheromones(self):
@@ -187,20 +206,20 @@ class Space:
             # If the new one is better I keep it and frame it with pheromones
             if spaceNew.fit < self.fit:
                 self = spaceNew
-                self.markPheromones()
+                self.markPheromones(crazy)
                 print spaceNew.fit
                 self.drawSpace()  # I only paint the spaces that are best
+
+            self.drawPheromones()
 
         # When all the ants are finished, I evaporate the pheromones
         self.evaporatePheromones()
 
         return self
 
-
-    # Draw the cameras in a window
-    def drawSpace(self):
-        ax.set_xlim((0, cols))
-        ax.set_ylim((0, rows))
+    #Auxiliary method to update the figure 1
+    def updateSpace(self):
+        global fig, ax
         i = 1
         for cam in range(len(self.cameras)):
             ax.add_artist(plt.Circle((self.cameras[cam][1], self.cameras[cam][0]),
@@ -214,9 +233,46 @@ class Space:
         fig.gca().set_aspect('equal', 'box')
         plt.show()
         plt.pause(5)
-        # while not input():
-        # plt.pause(1)
         ax.clear()  # which clears axes
+
+    # Draw the cameras in a window
+    def drawSpace(self):
+        plt.ion()
+
+        ax.set_xlim((0, cols))
+        ax.set_ylim((0, rows))
+
+        self.updateSpace()
+
+
+    #Draw two graphics of pheromones
+    def drawPheromones(self):
+        vcols = np.zeros(cols)
+        for i in range(cols):
+            vcols[i] = i
+
+        plt.figure(2)
+
+        plt.subplot(211)
+        plt.cla();
+        plt.title('Histogram of pheromones of up wall')
+        plt.xlabel('Point on wall')
+        plt.ylabel('Pheromone')
+        plt.axis([0, cols, 0, 30])
+        plt.bar(vcols, self.wall2, facecolor='#9999ff', edgecolor='white')
+
+        plt.subplot(212)
+        plt.cla();
+        plt.title('Histogram of pheromones of down wall')
+        plt.xlabel('Point on wall')
+        plt.ylabel('Pheromone')
+        plt.axis([0, cols, 0, 30])
+        plt.bar(vcols, self.wall1, facecolor='#1c702d', edgecolor='white')
+
+
+        plt.subplots_adjust(hspace=0.5)
+        plt.show()
+
 
     #if __name__ == '__main__':
     def startAlgorithm(self):
@@ -227,6 +283,6 @@ class Space:
 
         # I show the final solution
         print 'Solution:', self.cameras, 'fit', self.fit
-        # drawSpace(space)
+
         # while not input():
         # plt.pause(1)
