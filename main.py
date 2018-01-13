@@ -11,4 +11,5 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     # Generación de una ventana
     win = MyWindow()
-    app.exec_()
+    sys.exit(app.exec_())
+    #app.exec_()

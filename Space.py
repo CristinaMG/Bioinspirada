@@ -48,6 +48,8 @@ class Space:
                 (random.randint(0, 1) * rows, random.randint(0, cols)))
             self.color.append(random.choice(colors))
         self.fit = 0
+        self.cols = largo
+        self.rows = ancho
 
 
     # Process each camera and add the distance between them, the goal is to minimize it
