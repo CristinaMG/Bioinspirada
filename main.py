@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
+# coding=utf-8
 from MyWindow import MyWindow
 from PyQt4 import QtCore, QtGui, uic
 import sys

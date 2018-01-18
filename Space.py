@@ -7,20 +7,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PyQt4 import QtCore, QtGui, uic
 
-# Influencia de las pheromonas
-influenciapher = 0.5
+# Influencia de las feromonas
+influenciaFer = 0.5
 # Influencia de la distancia respecto al espacio cubierto
 pesoFitness = 0.0
-# coeficiente de evaporación de las pheromonas
+# coeficiente de evaporación de las feromonas
 evaporacion = 0.9  # Se evapora un 10%
 # Umbral que aceptamos para obtener una solución
 umbral = 0.2
-# Número de ants crazys
-numcrazys = 20  # 5% de las ants son crazys
-# Número de ants para el algoritmo
-numAnts = 5
+# Número de hormigas locas
+numLocas = 20  # 5% de las hormigas son locas
+# Número de hormigas para el algoritmo
+numHormigas = 5
 # Número de cámaras por cada space
-numCameras = 6
+numCamaras = 6
 # Espacio que abarca cada cámara
 focus = 35
 # Espacio máximo que abarca cada cámara
@@ -28,29 +28,56 @@ distMax = 2 * focus
 # Filas
 rows = 50
 # Columnas
-cols = 100
-
-ancho = rows
-largo = 100
+cols = 2 * rows
 
 colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 fig, ax = plt.subplots()  # note we must use plt.subplots, not plt.subplot
 
 # Main class that creates a set of cameras
 class Space:
-    def __init__(self):
+    def __init__(self, *args):
+        print args
+        # Space width
+        self.rows = args[0]
+        # Space long
+        self.cols = args[1]
+        # Space that each camera covers
+        self.focus = args[2]  # Se evapora un 10%
+        # Number of cameras
+        self.numCameras = args[3]
+        # Power of distance beetween cameras
+        self.distPower = args[4]  # 5% de las ants son crazys
+        # Power of pheromones
+        self.pheromPower = args[5]
+        # Evaporation of pheromones
+        self.evaporation = args[6]
+        # Number of ants
+        self.numAnts = args[7]
+        # Number of crazy ants
+        self.numCrazy = args[8]
+        # Minimun accepted solution
+        self.minThreshold = args[9]
+        # Espacio máximo que abarca cada cámara
+        distMax = 2 * focus
+        # Filas
+        rows = 50
+        # Columnas
+        cols = 100
+
+        ancho = rows
+        largo = 100
+
         self.wall1 = np.ones(cols)
         self.wall2 = np.ones(cols)
         self.cameras = []
         self.color = []
-        for i in range(numCameras):
+        for i in range(self.numCameras):
             self.cameras.append(
                 (random.randint(0, 1) * rows, random.randint(0, cols)))
             self.color.append(random.choice(colors))
         self.fit = 0
         self.cols = largo
         self.rows = ancho
-
 
     # Process each camera and add the distance between them, the goal is to minimize it
     def processDistMax(self):
@@ -66,16 +93,16 @@ class Space:
 
         return dist
 
-    #Process each wall to see the distance not covered by the cameras. The objective is to minimize it.
+    # Process each wall to see the distance not covered by the cameras. The objective is to minimize it.
     def processEmptySpace(self):
         list1 = []
         list2 = []
 
         for a in range(numCameras):
             if self.cameras[a][0] == 0:
-                list1.append(self.cameras[a][1]*largo/cols)
+                list1.append(self.cameras[a][1] * largo / cols)
             else:
-                list2.append(self.cameras[a][1]*largo/cols)
+                list2.append(self.cameras[a][1] * largo / cols)
 
         list1.append(0)
         list1.append(largo)
@@ -116,7 +143,7 @@ class Space:
 
     # Function that places each camera in a new position based on its probability
     def processCamera(self, cam, crazy):
-        large = cam[1] * largo/cols
+        large = cam[1] * largo / cols
         if large - focus < 0:
             low = 0
         else:
@@ -149,10 +176,10 @@ class Space:
         x = cam[0]
         if x == 0:
             # Cam changes from wall depending on the pheromones
-            if random.uniform(0, 1) < 0.1*self.wall2[y]:
+            if random.uniform(0, 1) < 0.1 * self.wall2[y]:
                 x == rows
         else:
-            if random.uniform(0, 1) < 0.1*self.wall1[y]:
+            if random.uniform(0, 1) < 0.1 * self.wall1[y]:
                 x == 0
 
         return [x, y]
@@ -169,12 +196,11 @@ class Space:
         # The new space is returned
         return spaceNew
 
-
     # Mark the pheromones of the route
     def markPheromones(self, crazy):
         if crazy == 0:
             input = 1
-        else: #if it is a crazy ant its input is bigger
+        else:  # if it is a crazy ant its input is bigger
             input = 5
 
         for i in range(numCameras):
@@ -182,7 +208,6 @@ class Space:
                 self.wall1[self.cameras[i][1]] += input
             else:
                 self.wall2[self.cameras[i][1]] += input
-
 
     # Evaporates the trace of pheromones in each iteration
     def evaporatePheromones(self):
@@ -219,7 +244,7 @@ class Space:
 
         return self
 
-    #Auxiliary method to update the figure 1
+    # Auxiliary method to update the figure 1
     def updateSpace(self):
         global fig, ax
         i = 1
@@ -246,8 +271,7 @@ class Space:
 
         self.updateSpace()
 
-
-    #Draw two graphics of pheromones
+    # Draw two graphics of pheromones
     def drawPheromones(self):
         vcols = np.zeros(cols)
         for i in range(cols):
@@ -256,7 +280,7 @@ class Space:
         plt.figure(2)
 
         plt.subplot(211)
-        plt.cla();
+        plt.cla()
         plt.title('Histogram of pheromones of up wall')
         plt.xlabel('Point on wall')
         plt.ylabel('Pheromone')
@@ -264,19 +288,17 @@ class Space:
         plt.bar(vcols, self.wall2, facecolor='#9999ff', edgecolor='white')
 
         plt.subplot(212)
-        plt.cla();
+        plt.cla()
         plt.title('Histogram of pheromones of down wall')
         plt.xlabel('Point on wall')
         plt.ylabel('Pheromone')
         plt.axis([0, cols, 0, 30])
         plt.bar(vcols, self.wall1, facecolor='#1c702d', edgecolor='white')
 
-
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-
-    #if __name__ == '__main__':
+    # if __name__ == '__main__':
     def startAlgorithm(self):
 
         # I'm looking for an acceptable solution with the algorithm of the ants

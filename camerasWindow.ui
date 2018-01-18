@@ -2,12 +2,15 @@
 <ui version="4.0">
  <class>Cameras</class>
  <widget class="QWidget" name="Cameras">
+  <property name="windowModality">
+   <enum>Qt::WindowModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>959</width>
-    <height>655</height>
+    <width>1155</width>
+    <height>729</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -22,8 +25,23 @@
     <height>16777215</height>
    </size>
   </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::StrongFocus</enum>
+  </property>
+  <property name="contextMenuPolicy">
+   <enum>Qt::ActionsContextMenu</enum>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
   <property name="windowTitle">
    <string>Distribución de cámaras</string>
+  </property>
+  <property name="inputMethodHints">
+   <set>Qt::ImhPreferNumbers</set>
   </property>
   <widget class="QWidget" name="verticalLayoutWidget">
    <property name="geometry">
@@ -31,7 +49,7 @@
      <x>0</x>
      <y>10</y>
      <width>251</width>
-     <height>612</height>
+     <height>579</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="configuration">
@@ -50,7 +68,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rows"/>
+     <widget class="QLineEdit" name="rows">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="inputMethodHints">
+       <set>Qt::ImhPreferNumbers</set>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="QLabel" name="label_10">
@@ -60,7 +85,11 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="cols"/>
+     <widget class="QLineEdit" name="cols">
+      <property name="focusPolicy">
+       <enum>Qt::StrongFocus</enum>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="QLabel" name="label_11">
@@ -142,44 +171,31 @@
     <item>
      <widget class="QLineEdit" name="minThreshold"/>
     </item>
-    <item>
-     <widget class="QPushButton" name="button">
-      <property name="text">
-       <string>START</string>
-      </property>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QWidget" name="verticalLayoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>289</x>
-     <y>9</y>
+     <x>280</x>
+     <y>0</y>
      <width>631</width>
-     <height>631</height>
+     <height>721</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="imagesLayout">
     <item>
-     <widget class="QWidget" name="image" native="true"/>
+     <widget class="QWidget" name="image" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <zorder>pheromones</zorder>
+     </widget>
     </item>
     <item>
-     <widget class="QWidget" name="pheromones" native="true">
-      <widget class="Line" name="line_2">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>0</y>
-         <width>629</width>
-         <height>3</height>
-        </rect>
-       </property>
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </widget>
+     <widget class="QWidget" name="pheromones" native="true"/>
     </item>
    </layout>
   </widget>
@@ -189,11 +205,82 @@
      <x>240</x>
      <y>10</y>
      <width>20</width>
-     <height>631</height>
+     <height>711</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Vertical</enum>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="start">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>640</y>
+     <width>249</width>
+     <height>60</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>START</string>
+   </property>
+  </widget>
+  <widget class="Line" name="line_2">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>10</y>
+     <width>20</width>
+     <height>711</height>
     </rect>
    </property>
    <property name="orientation">
     <enum>Qt::Vertical</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="state">
+   <property name="geometry">
+    <rect>
+     <x>937</x>
+     <y>6</y>
+     <width>201</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="process">
+   <property name="geometry">
+    <rect>
+     <x>940</x>
+     <y>70</y>
+     <width>201</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="listProcess">
+   <property name="geometry">
+    <rect>
+     <x>947</x>
+     <y>116</y>
+     <width>171</width>
+     <height>311</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>TextLabel</string>
    </property>
   </widget>
  </widget>
