@@ -154,7 +154,7 @@
     <item>
      <widget class="QLabel" name="label_8">
       <property name="text">
-       <string>Porcentaje de locas</string>
+       <string>Porcentaje de exploradoras</string>
       </property>
      </widget>
     </item>
@@ -191,7 +191,6 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <zorder>pheromones</zorder>
      </widget>
     </item>
     <item>
