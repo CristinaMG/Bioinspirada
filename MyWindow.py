@@ -220,7 +220,6 @@ class MyWindow(QtGui.QMainWindow, form_class,QObject):
         # Window is showed
         self.show()
 
-
     ## Methods to get the configuration parameters
     def getRows(self):
         self.rowsF = float(self.rows.text())
@@ -260,6 +259,7 @@ class MyWindow(QtGui.QMainWindow, form_class,QObject):
 
     def getThreshold(self):
         self.minThresholdF = float(self.minThreshold.text())
+
         print self.minThresholdF
 
     # Handle to update the draw space
@@ -291,8 +291,6 @@ class MyWindow(QtGui.QMainWindow, form_class,QObject):
         self.setCentralWidget(self.pheromones)
 
         self.draw.connect(self.handle_draw)
-
-
 
     # Event of the start button
     def button_clicked(self):

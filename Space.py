@@ -16,7 +16,8 @@ colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
 fig, ax = plt.subplots()  # note we must use plt.subplots, not plt.subplot
 
 # Main class that creates a set of cameras
-class Space(QObject):
+#class Space(QObject):
+class Space():
     def __init__(self, *args):
         print 'Configuración inicial:', args
         # Space width
@@ -60,19 +61,31 @@ class Space(QObject):
 
     # Process each camera and add the distance between them, the goal is to minimize it
     def processDistMax(self):
+        list1 = []
+        list2 = []
+
+        for a in range(self.numCameras):
+            if self.cameras[a][0] == 0:
+                list1.append(self.cameras[a][1] * self.height / cols)
+            else:
+                list2.append(self.cameras[a][1] * self.height / cols)
+
+        list1.sort()
+        list2.sort()
+
         dist = 0
-        listCam = []
+        '''listCam = []
         for a in range(self.numCameras):
             listCam.append(self.cameras[a][1])
 
-        listCam.sort()
+        listCam.sort()'''
 
-        for a in range(self.numCameras - 1):
-            dist += abs(listCam[a] - listCam[a + 1])
+        for a in range(len(list1) - 1):
+            dist += abs(list1[a] - list1[a + 1] - self.focus)
+        for a in range(len(list2) - 1):
+            dist += abs(list2[a] - list2[a + 1] - self.focus)
 
-        dist = (dist * self.height / cols)/cols
-
-        return dist
+        return dist/cols
 
     # Process each wall to see the distance not covered by the cameras. The objective is to minimize it.
     def processEmptySpace(self):
@@ -119,61 +132,63 @@ class Space(QObject):
     def evaluateSpace(self):
         fit = self.processDistMax() * self.distPower + \
             self.processEmptySpace() * (1 - self.distPower)
+        print fit
         self.fit = fit
 
     # Function that places each camera in a new position based on its probability
     def processCamera(self, cam, crazy):
-        #print 'processCamera'
-        large = cam[1] * self.height / cols
-        if large - self.focus < 0:
+        #large = cam[1] * self.height / cols
+        if cam[1] - self.focus < 0:
             low = 0
         else:
-            low = large - self.focus
+            low = cam[1] - self.focus
 
-        if large + self.focus > cols:
+        if cam[1] + self.focus > cols:
             high = cols
         else:
-            high = large + self.focus
+            high = cam[1] + self.focus
 
         y = int(random.triangular(low, high))
 
         # If the ant is not crazy
-        '''if crazy == 0:
+        if crazy == 0:
             mode = 0
-            if cam[0] == 0:
-                for i in range(cols):
+            pos = cam[1]
+            if cam[0] == 0.0:
+                for i in range(int(low),int(high)):
                     if self.wall1[i] > mode:
                         mode = self.wall1[i]
+                        pos = i
             else:
-                for i in range(cols):
+                for i in range(int(low),int(high)):
                     if self.wall2[i] > mode:
                         mode = self.wall2[i]
+                        pos = i
 
-            print 'mode1',mode
-            mode = mode*pheromPower + cam[1]*(1-pheromPower)
-            print 'mode2',mode
-            y = int(random.triangular(low, mode, high))'''
+            mode = pos*self.pheromPower + cam[1]*(1-self.pheromPower)
+            y = int(random.triangular(low, mode, high))
 
         x = cam[0]
-        if x == 0:
+        if x == 0.0:
             # Cam changes from wall depending on the pheromones
-            if random.uniform(0, 1) < 0.1 * self.wall2[y]:
-                x == self.width
+            if random.uniform(0, 1) < 0.05 * self.wall2[y]:
+                print 'Camera change de 0 a 50'
+                x = self.width
         else:
-            if random.uniform(0, 1) < 0.1 * self.wall1[y]:
-                x == 0
+            if random.uniform(0, 1) < 0.05 * self.wall1[y]:
+                print 'Camera change de 50 a 0'
+                x = 0.0
 
-        return [x, y]
+        return (x, y)
 
     # Algorithm that creates a space taking into account the data of the previous
     def createSpace(self, crazy):
-        #print 'New space'
-        spaceNew = copy.copy(self)
-        for i in range(self.numCameras):
+        print 'New space'
+        spaceNew = copy.deepcopy(self)
+        for i in range(spaceNew.numCameras):
             # You get the position of each camera to build te path
-            [x, y] = self.processCamera(spaceNew.cameras[i], crazy)
             # Each camera is placed in the new space, in the new position
-            spaceNew.cameras[i] = [x, y]
+            spaceNew.cameras[i] = spaceNew.processCamera(spaceNew.cameras[i], crazy)
 
         # The new space is returned
         return spaceNew
@@ -181,10 +196,10 @@ class Space(QObject):
     # Mark the pheromones of the route
     def markPheromones(self, crazy):
         if crazy == 0:
-            print 'markPheromones'
+            #print 'markPheromones'
             input = 1
         else:  # if it is a crazy ant its input is bigger
-            print 'markPheromones crazy'
+            #print 'markPheromones crazy'
             input = 5
 
         for i in range(self.numCameras):
@@ -192,13 +207,19 @@ class Space(QObject):
                 self.wall1[self.cameras[i][1]] += input
             else:
                 self.wall2[self.cameras[i][1]] += input
+        print 'wall1', self.wall1
+        print 'wall2', self.wall2
 
     # Evaporates the trace of pheromones in each iteration
     def evaporatePheromones(self):
-        #print 'Evaporacion'
+        print 'Evaporacion'
         for i in range(cols):
             self.wall1[i] *= (1-self.evaporation)
+            if self.wall1[i] < 0.01:
+                self.wall1[i]=0.0
             self.wall2[i] *= (1-self.evaporation)
+            if self.wall2[i] < 0.01:
+                self.wall2[i]=0.0
 
     # Ants colony algorithm that creates new ants until finding better solutions
     def ants(self):
@@ -210,9 +231,10 @@ class Space(QObject):
             if random.uniform(0, 1) < (self.numCrazy/100):
                 crazy = 1
                 print 'crazy'
+
             # I create a new space based in the previous
             spaceNew = self.createSpace(crazy)
-
+            print 'spaceNew',spaceNew.cameras
             # I evaluated it
             spaceNew.evaluateSpace()
 
@@ -220,9 +242,9 @@ class Space(QObject):
             if spaceNew.fit < self.fit:
                 self = spaceNew
                 self.markPheromones(crazy)
-                print '<<<<<<<<<<<< Espacio mejor', spaceNew.fit
+                print '<<<<<<<<<<<< Espacio mejor',self.cameras, self.fit
                 # Emit draw signal
-                self.draw.emit()
+                #self.draw.emit()
                 #self.drawSpace()  # I only paint the spaces that are best
 
             crazy = 0
@@ -230,7 +252,6 @@ class Space(QObject):
 
         # When all the ants are finished, I evaporate the pheromones
         self.evaporatePheromones()
-
         return self
 
     # Auxiliary method to update the figure 1
@@ -289,10 +310,13 @@ class Space(QObject):
 
     # if __name__ == '__main__':
     def startAlgorithm(self):
+        print self.cameras
 
-        # I'm looking for an acceptable solution with the algorithm of the ants
+        # I'm looking for an acceptable solution with the ants algorithm
         while self.fit > self.minThreshold:
             self = self.ants()
+            print "best ->", self.cameras, self.fit
+            #raw_input("Press enter to continue")
 
         # I show the final solution
         print 'Solution:', self.cameras, 'fit', self.fit
