@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.QtCore import QObject, pyqtSignal
-import Queue
 import threading
 from time import sleep
 
@@ -25,12 +24,13 @@ class Space(threading.Thread):
     def __init__(self, *args):
         self.confParam = args[0]
 
-        # Define the new signals called 'drawSpace' that has no arguments
+        # Define the new signals that have no arguments
         self.drawSpace = args[1]
         self.drawPher = args[2]
+        self.drawProcess = args[3]
+        self.drawEnd = args[4]
 
-        self.q = args[3]
-        self.timeout = args[4]
+        self.timeout = args[5]
         super(Space, self).__init__()
 
         # Lists to calculate each wall
@@ -51,20 +51,17 @@ class Space(threading.Thread):
 
         if(args[0] != None):
             self.evaluateSpace()
-            print 'space Inicio', self.cameras, self.fit
+            #print 'space Inicio', self.cameras, self.fit
 
     def run(self):
         while self.fit > self.confParam['minThresholdF']:
-            try:
-                function, args, kwargs = self.q.get(timeout=self.timeout)
-                function(*args, **kwargs)
-            except Queue.Empty:
-                self = self.ants()
-                print "best 3 ->", self.cameras, self.fit
-                #raw_input("Press enter to continue")
+            self = self.ants()
+            self.drawProcess.emit()
+            #raw_input("Press enter to continue")
 
         # I show the final solution
         print 'Solution:', self.cameras, 'fit', self.fit
+        self.drawEnd.emit()
 
     # Process each camera and add the distance between them, the goal is to minimize it
     def processDistMax(self):
@@ -89,6 +86,8 @@ class Space(threading.Thread):
         for a in range(len(list2) - 1):
             dist += abs(list2[a] - list2[a + 1] - self.confParam['focusF'])
 
+        if len(list1) > int(self.confParam['numCamerasF']/2):
+            dist += 50
         return dist / cols
 
     # Process each wall to see the distance not covered by the cameras. The objective is to minimize it.
@@ -139,81 +138,80 @@ class Space(threading.Thread):
         fit = self.processDistMax() * \
             self.confParam['distPowerF'] + self.processEmptySpace() * \
             (1 - self.confParam['distPowerF'])
-        print fit
+        #print fit
         self.fit = fit
 
     # Function that places each camera in a new position based on its probability
-    def processCamera(self, cam, crazy):
-        focus = int(self.confParam['focusF'] * 0.4)
-        if cam[1] - focus < 0:
+    def processCamera(self, a, crazy, spaceNew):
+        #focus = int(spaceNew.confParam['focusF'] * 0.4)
+        focus = spaceNew.confParam['focusF']
+        if spaceNew.cameras[a][1] - focus < 0:
             low = 0
         else:
-            low = cam[1] - focus
-
-        if cam[1] + focus > cols:
+            low = spaceNew.cameras[a][1] - focus
+        if spaceNew.cameras[a][1] + focus > cols:
             high = cols
         else:
-            high = cam[1] + focus
+            high = spaceNew.cameras[a][1] + focus
 
         y = int(random.triangular(low, high))
-
         # If the ant is not crazy
         if crazy == 0:
             mode = 0
-            pos = cam[1]
-            if cam[0] == 0.0:
+            pos = spaceNew.cameras[a][1]
+            if spaceNew.cameras[a][0] == 0.0:
                 for i in range(int(low), int(high)):
-                    if self.wall1[i] > mode:
-                        mode = self.wall1[i]
+                    if spaceNew.wall1[i] > mode:
+                        mode = spaceNew.wall1[i]
                         pos = i
             else:
                 for i in range(int(low), int(high)):
-                    if self.wall2[i] > mode:
-                        mode = self.wall2[i]
+                    if spaceNew.wall2[i] > mode:
+                        mode = spaceNew.wall2[i]
                         pos = i
 
-            mode = pos * self.confParam['pheromPowerF'] + \
-                cam[1] * (1 - self.confParam['pheromPowerF'])
+            mode = pos * spaceNew.confParam['pheromPowerF'] + \
+                spaceNew.cameras[a][1] * (1 - spaceNew.confParam['pheromPowerF'])
             y = int(random.triangular(low, mode, high))
 
-        x = cam[0]
+        x = spaceNew.cameras[a][0]
         if x == 0.0:
             # Cam changes from wall depending on the pheromones
-            if random.uniform(0, 1) < 0.05 * self.wall2[y]:
-                print 'Camera change de 0 a 50'
-                x = self.confParam['rowsF']
+            if random.uniform(0, 1) < 0.05 * spaceNew.wall2[y]:
+                #print 'Camera change de 0 a 50'
+                x = spaceNew.confParam['rowsF']
         else:
-            if random.uniform(0, 1) < 0.05 * self.wall1[y]:
-                print 'Camera change de 50 a 0'
+            if random.uniform(0, 1) < 0.05 * spaceNew.wall1[y]:
+                #print 'Camera change de 50 a 0'
                 x = 0.0
 
         return (x, y)
 
     # Algorithm that copies an object in a new object
     def copySpace(self):
-        spaceNew = Space(None, None, None, None, None)
+        spaceNew = Space(None, None, None, None, None, None)
         spaceNew.confParam = self.confParam
         spaceNew.drawSpace = self.drawSpace
         spaceNew.drawPher = self.drawPher
-        spaceNew.q = self.q
+        spaceNew.drawProcess = self.drawProcess
+        spaceNew.drawEnd = self.drawEnd
         spaceNew.out = self.timeout
-        spaceNew.wall1 = self.wall1
-        spaceNew.wall2 = self.wall2
-        spaceNew.cameras = self.cameras
-        spaceNew.color = self.color
+        spaceNew.wall1 = self.wall1[:]
+        spaceNew.wall2 = self.wall2[:]
+        spaceNew.cameras = self.cameras[:]
+        spaceNew.color = self.color[:]
         spaceNew.fit = self.fit
         return spaceNew
 
     # Algorithm that creates a space taking into account the data of the previous
     def createSpace(self, crazy):
-        print 'New space'
+        #print 'New space'
         spaceNew = self.copySpace()
-        print 'space 1', spaceNew.cameras, spaceNew.fit
         for i in range(spaceNew.confParam['numCamerasF']):
             # You get the position of each camera to build te path
             # Each camera is placed in the new space, in the new position
-            spaceNew.cameras[i] = spaceNew.processCamera(
-                spaceNew.cameras[i], crazy)
+            spaceNew.cameras[i] = self.processCamera(
+                i, crazy, spaceNew)
 
         # The new space is returned
         return spaceNew
@@ -221,11 +219,11 @@ class Space(threading.Thread):
     # Mark the pheromones of the route
     def markPheromones(self, crazy):
         if crazy == 0:
-            # print 'markPheromones'
-            input = 2
+            # #print 'markPheromones'
+            input = 1
         else:  # if it is a crazy ant its input is bigger
-            # print 'markPheromones crazy'
-            input = 10
+            # #print 'markPheromones crazy'
+            input = 5
 
         for i in range(self.confParam['numCamerasF']):
             if self.cameras[i][0] == 0:
@@ -235,7 +233,7 @@ class Space(threading.Thread):
 
     # Evaporates the trace of pheromones in each iteration
     def evaporatePheromones(self):
-        print 'Evaporacion'
+        #print 'Evaporacion'
         for i in range(cols):
             self.wall1[i] *= (1 - self.confParam['evaporationF'])
             if self.wall1[i] < 0.01:
@@ -251,8 +249,9 @@ class Space(threading.Thread):
         self.confParam = spaceNew.confParam
         self.drawSpace = spaceNew.drawSpace
         self.drawPher = spaceNew.drawPher
-        self.q = spaceNew.q
-        self.timeout = spaceNew.out
+        self.drawProcess = spaceNew.drawProcess
+        self.drawEnd = spaceNew.drawEnd
+        self.timeout = spaceNew.timeout
         self.wall1 = spaceNew.wall1
         self.wall2 = spaceNew.wall2
         self.cameras = spaceNew.cameras
@@ -261,32 +260,34 @@ class Space(threading.Thread):
 
     # Ants colony algorithm that creates new ants until finding better solutions
     def ants(self):
-        print '-------------------- hormigas ------------------ '
+        #print '-------------------- hormigas ------------------ '
         crazy = 0
         # For each ant
         for i in range(self.confParam['numAntsF']):
             # I mark if it is crazy
             if random.uniform(0, 1) < (self.confParam['numCrazyF'] / 100):
                 crazy = 1
-                print 'crazy'
+                #print 'crazy'
 
             # I create a new space based in the previous
-            print 'space 0', self.cameras, self.fit
+            #print 'space 0', self.cameras, self.fit
             spaceNew = self.createSpace(crazy)
-            print 'spaceNew', spaceNew.cameras
             # I evaluated it
             spaceNew.evaluateSpace()
-
+            #print 'spaceNew', spaceNew.cameras, spaceNew.fit
             # If the new one is better I keep it and frame it with pheromones
+            #print 'Fit Spacenew', spaceNew.fit, 'fit self', self.fit
             if spaceNew.fit < self.fit:
                 self.updateSpace(spaceNew)
-                print 'space 2', self.cameras, self.fit
+                #print 'space 2', self.cameras, self.fit
                 self.markPheromones(crazy)
-                print '<<<<<<<<<<<< Espacio mejor', self.cameras, self.fit
+                #print '<<<<<<<<<<<< Espacio mejor', self.cameras, self.fit
                 # Emit drawSpace signal
                 self.drawSpace.emit()
                 sleep(1)
                 # self.drawSpace()  # I only paint the spaces that are best
+
+            #print 'space 4', self.cameras, self.fit
 
             crazy = 0
 

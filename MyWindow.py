@@ -14,7 +14,6 @@ import random
 import numpy as np
 from PyQt4.QtGui import QDoubleValidator, QIntValidator
 from time import sleep
-import Queue
 
 # Cargar nuestro archivo .ui
 form_class = uic.loadUiType("camerasWindow.ui")[0]
@@ -94,14 +93,15 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
     drawSpace = pyqtSignal()
     drawPher = pyqtSignal()
     drawProcess = pyqtSignal()
+    drawEnd = pyqtSignal()
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        self.confParam = {'rowsF': 50.0, 'colsF': 100.0, 'focusF': 35.0, 'numCamerasF': 6, 'distPowerF': 0.4,
-                          'pheromPowerF': 0.5, 'evaporationF': 0.2, 'numAntsF': 5, 'numCrazyF': 5.0, 'minThresholdF': 1.06}
+        self.confParam = {'rowsF': 50.0, 'colsF': 100.0, 'focusF': 35.0, 'numCamerasF': 6, 'distPowerF': 0.5,
+                          'pheromPowerF': 0.5, 'evaporationF': 0.2, 'numAntsF': 5, 'numCrazyF': 5.0, 'minThresholdF': 1.0}
 
         onlyFloat = QDoubleValidator()
         onlyFloat.setNotation(QDoubleValidator.StandardNotation)
@@ -119,7 +119,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         self.numCameras.setText('6')
         self.numCameras.setValidator(onlyInt)
         self.numCameras.textEdited.connect(self.getCameras)
-        self.distPower.setText('0.4')
+        self.distPower.setText('0.5')
         self.distPower.setValidator(onlyFloat)
         self.distPower.textEdited.connect(self.getDistPower)
         self.pheromPower.setText('0.5')
@@ -134,7 +134,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         self.numCrazy.setText('5')
         self.numCrazy.setValidator(onlyFloat)
         self.numCrazy.textEdited.connect(self.getCrazy)
-        self.minThreshold.setText('1.06')
+        self.minThreshold.setText('1.0')
         self.minThreshold.setValidator(onlyFloat)
         self.minThreshold.textEdited.connect(self.getThreshold)
 
@@ -144,6 +144,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         self.setGeometry(0, 0, 2000, 1000)
         self.process.setText('')
         self.listProcess.setText('')
+        self.result.setText('')
 
         # It connects the button to start the application
         self.start.clicked.connect(self.button_clicked)
@@ -200,6 +201,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
 
     # Handle to update the draw process
     def handle_drawProcess(self):
+        self.listProcess.setText('')
         for a in range(self.confParam['numAntsF']):
             self.listProcess.setText(self.listProcess.text()+'H'+str(a)+'\n')
 
@@ -208,22 +210,23 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         for a in range(self.confParam['numAntsF']):
             self.listProcess.setText(self.listProcess.text()+'H'+str(a)+'\n')
 
+    def handle_drawEnd(self):
+        self.state.setText('Estado: Finish')
+        self.state.setStyleSheet('color: #069019')
+        for i in range(self.confParam['numCamerasF']):
+            self.result.setText(self.result.text()+str(self.space.cameras[i])+'\n')
+
     # Event of the start button
     def button_clicked(self):
         # Generation of an initial solution
         try:
-            # self.space.evaluateSpace()
-            # self.space.startAlgorithm()
-            q = Queue.Queue()
             loop_time = 1.0 / 60
             self.space = Space(self.confParam, self.drawSpace,
-                               self.drawPher, q, loop_time)
+                               self.drawPher,self.drawProcess, self.drawEnd, loop_time)
             self.space.setDaemon(True)
             self.space.start()
             self.state.setText('Estado: Processing')
             self.state.setStyleSheet('color: #AC660A')
-            #self.state.setText('Estado: Finish')
-            # self.state.setStyleSheet('color: #069019')
         except Exception as inst:
             print type(inst)     # the exception instance
             print inst.args      # arguments stored in .args
@@ -253,3 +256,5 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         # Connect signals to draw
         self.drawSpace.connect(self.handle_drawSpace)
         self.drawPher.connect(self.handle_drawPher)
+        self.drawProcess.connect(self.handle_drawProcess)
+        self.drawEnd.connect(self.handle_drawEnd)
