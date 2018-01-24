@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1155</width>
-    <height>729</height>
+    <height>754</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -179,7 +179,7 @@
      <x>280</x>
      <y>0</y>
      <width>631</width>
-     <height>721</height>
+     <height>401</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="imagesLayout">
@@ -192,9 +192,6 @@
        </sizepolicy>
       </property>
      </widget>
-    </item>
-    <item>
-     <widget class="QWidget" name="pheromones" native="true"/>
     </item>
    </layout>
   </widget>
@@ -275,12 +272,33 @@
      <x>947</x>
      <y>116</y>
      <width>171</width>
-     <height>311</height>
+     <height>531</height>
     </rect>
+   </property>
+   <property name="autoFillBackground">
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>TextLabel</string>
    </property>
+   <property name="alignment">
+    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+   </property>
+  </widget>
+  <widget class="QWidget" name="horizontalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>280</x>
+     <y>370</y>
+     <width>631</width>
+     <height>381</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="pheromLayout">
+    <item>
+     <widget class="QWidget" name="pheromones" native="true"/>
+    </item>
+   </layout>
   </widget>
  </widget>
  <resources/>

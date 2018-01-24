@@ -9,7 +9,8 @@ if __name__ == '__main__':
 
     #Init application
     app = QtGui.QApplication(sys.argv)
-    # Generación de una ventana
+
+    # New window
     win = MyWindow()
     sys.exit(app.exec_())
     #app.exec_()

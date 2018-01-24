@@ -14,6 +14,7 @@ import random
 import numpy as np
 from PyQt4.QtGui import QDoubleValidator, QIntValidator
 from time import sleep
+import Queue
 
 # Cargar nuestro archivo .ui
 form_class = uic.loadUiType("camerasWindow.ui")[0]
@@ -25,7 +26,6 @@ cols = 100
 class MyCanvasSpace(FigureCanvas):
     def __init__(self, *args, **kwargs):
         self.space = args[1]
-
         self.fig = Figure(figsize=(kwargs.get('width'),
                                    kwargs.get('height')), dpi=kwargs.pop('dpi'))
         self.axes = self.fig.add_subplot(111)
@@ -34,49 +34,22 @@ class MyCanvasSpace(FigureCanvas):
         self.axes.set_ylim((0, kwargs.get('width')))
 
         self.focus = kwargs.get('focus')
-        self.init_figure()
         FigureCanvas.__init__(self, self.fig)
-        self.setParent(kwargs.pop('parent'))
+        self.init_figure()
 
-        '''FigureCanvas.setSizePolicy(self,
-                                   QtGui.QSizePolicy.Expanding,
-                                   QtGui.QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)'''
-        # plt.ion()
-        '''timer = QtCore.QTimer(self)
-        timer.timeout.connect(self.update_figure())
-        timer.start(1000)'''
+        self.setParent(kwargs.pop('parent'))
 
     def init_figure(self):
         plt.ion()
-        #i = 1
         for cam in range(len(self.space.cameras)):
-            self.axes.add_artist(plt.Circle((self.space.cameras[cam][1]* self.space.height / cols, self.space.cameras[cam][0]),
+            self.axes.add_artist(plt.Circle((self.space.cameras[cam][1] * self.space.confParam['colsF'] / cols, self.space.cameras[cam][0]),
                                             self.focus, color=self.space.color[cam], fill=self.space.color[cam], alpha=0.5, clip_on=True))
             self.axes.annotate("C" + str(cam),
-                               [self.space.cameras[cam][1]* self.space.height / cols, self.space.cameras[cam][0]])
-            self.axes.plot((self.space.cameras[cam][1]* self.space.height / cols), (self.space.cameras[cam]
-                                                          [0]), 'o', color=self.space.color[cam])
-            #i += 1
+                               [self.space.cameras[cam][1]* self.space.confParam['colsF'] / cols, self.space.cameras[cam][0]])
+            self.axes.plot(
+                (self.space.cameras[cam][1]* self.space.confParam['colsF'] / cols), (self.space.cameras[cam][0]), 'o', color=self.space.color[cam])
         self.fig.gca().set_aspect('equal', 'box')
-
-    def update_figure(self):
-        #global fig, ax
-        self.axes.cla()
-        #i = 1
-        for cam in range(len(self.space.cameras)):
-            self.axes.add_artist(plt.Circle((self.space.cameras[cam][1]* self.space.height / cols, self.space.cameras[cam][0]),
-                                            self.focus, color=self.space.color[cam], fill=self.space.color[cam], alpha=0.5, clip_on=True))
-            self.axes.annotate("C" + str(cam),
-                               [self.space.cameras[cam][1]* self.space.height / cols, self.space.cameras[cam][0]])
-            self.axes.plot((self.space.cameras[cam][1]* self.space.height / cols), (self.space.cameras[cam]
-                                                          [0]), 'o', color=self.space.color[cam])
-            #i += 1
-
-        self.fig.gca().set_aspect('equal', 'box')
-        #plt.show()
-        #plt.pause(5)
-        # self.axes.clear()
+        self.axes.text(1.1, 1.2,'fit = '+ str(self.space.fit) , horizontalalignment='right',verticalalignment='top',transform=self.axes.transAxes)
 
 # Class to draw the space and the cameras position
 class MyCanvasPheromone(FigureCanvas):
@@ -87,23 +60,10 @@ class MyCanvasPheromone(FigureCanvas):
                                    kwargs.get('height')), dpi=kwargs.get('dpi'))
         self.axes = self.fig.add_subplot(211)
         self.axes2 = self.fig.add_subplot(212)
-        #self.fig1, self.axes = plt.subplots()
-        #self.axes.set_xlim((0, cols))
-        #self.axes.set_ylim((0, 50))
 
         self.init_figure()
         FigureCanvas.__init__(self, self.fig)
         self.setParent(kwargs.pop('parent'))
-
-        '''FigureCanvas.setSizePolicy(self,
-                                   QtGui.QSizePolicy.Expanding,
-                                   QtGui.QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)'''
-        # plt.ion()
-        '''timer = QtCore.QTimer(self)
-        timer.timeout.connect(self.update_figure())
-        timer.start(1000)'''
-
 
     def init_figure(self):
         vcols = np.zeros(cols)
@@ -116,7 +76,7 @@ class MyCanvasPheromone(FigureCanvas):
         self.axes.set_ylabel('Feromona')
         self.axes.axis([0, cols, 0, 50])
         self.axes.bar(vcols, self.space.wall2,
-                      facecolor='#9999ff', edgecolor='white')
+                      facecolor='#0011ff', edgecolor='white')
 
         self.axes2.cla()
         self.axes2.set_title('Histograma de feromonas pared inferior')
@@ -124,53 +84,24 @@ class MyCanvasPheromone(FigureCanvas):
         self.axes2.set_ylabel('Feromona')
         self.axes2.axis([0, cols, 0, 50])
         self.axes2.bar(vcols, self.space.wall1,
-                       facecolor='#1c702d', edgecolor='white')
+                       facecolor='#008912', edgecolor='white')
 
         self.fig.subplots_adjust(hspace=0.9)
 
+# Class to paint the main window
+class MyWindow(QtGui.QMainWindow, form_class, QObject):
 
-    def update_figure(self):
-        vcols = np.zeros(cols)
-        for i in range(cols):
-            vcols[i] = i
+    drawSpace = pyqtSignal()
+    drawPher = pyqtSignal()
+    drawProcess = pyqtSignal()
 
-        self.axes.cla()
-        self.axes.set_title('Histograma de feromonas pared superior')
-        self.axes.set_xlabel('Punto en la pared')
-        self.axes.set_ylabel('Feromona')
-        self.axes.axis([0, cols, 0, 50])
-        self.axes.bar(vcols, self.space.wall2,
-                      facecolor='#9999ff', edgecolor='white')
-
-        self.axes2.cla()
-        self.axes2.set_title('Histograma de feromonas pared inferior')
-        self.axes2.set_xlabel('Punto en la pared')
-        self.axes2.set_ylabel('Feromona')
-        self.axes2.axis([0, cols, 0, 50])
-        self.axes2.bar(vcols, self.space.wall1,
-                       facecolor='#1c702d', edgecolor='white')
-
-        self.fig.subplots_adjust(hspace=0.9)
-
-
-class MyWindow(QtGui.QMainWindow, form_class,QObject):
-
-    draw = pyqtSignal()
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        self.rowsF = 50.0
-        self.colsF = 100.0
-        self.focusF = 35.0
-        self.numCamerasF = 6
-        self.distPowerF = 0.5
-        self.pheromPowerF = 0.5
-        self.evaporationF = 0.3
-        self.numAntsF = 5
-        self.numCrazyF = 5.0
-        self.minThresholdF = 0.1
+        self.confParam = {'rowsF': 50.0, 'colsF': 100.0, 'focusF': 35.0, 'numCamerasF': 6, 'distPowerF': 0.4,
+                          'pheromPowerF': 0.5, 'evaporationF': 0.2, 'numAntsF': 5, 'numCrazyF': 5.0, 'minThresholdF': 1.06}
 
         onlyFloat = QDoubleValidator()
         onlyFloat.setNotation(QDoubleValidator.StandardNotation)
@@ -188,13 +119,13 @@ class MyWindow(QtGui.QMainWindow, form_class,QObject):
         self.numCameras.setText('6')
         self.numCameras.setValidator(onlyInt)
         self.numCameras.textEdited.connect(self.getCameras)
-        self.distPower.setText('0.5')
+        self.distPower.setText('0.4')
         self.distPower.setValidator(onlyFloat)
         self.distPower.textEdited.connect(self.getDistPower)
         self.pheromPower.setText('0.5')
         self.pheromPower.setValidator(onlyFloat)
         self.pheromPower.textEdited.connect(self.getPheromPower)
-        self.evaporation.setText('0.3')
+        self.evaporation.setText('0.2')
         self.evaporation.setValidator(onlyFloat)
         self.evaporation.textEdited.connect(self.getEvaporation)
         self.numAnts.setText('5')
@@ -203,11 +134,11 @@ class MyWindow(QtGui.QMainWindow, form_class,QObject):
         self.numCrazy.setText('5')
         self.numCrazy.setValidator(onlyFloat)
         self.numCrazy.textEdited.connect(self.getCrazy)
-        self.minThreshold.setText('0.1')
+        self.minThreshold.setText('1.06')
         self.minThreshold.setValidator(onlyFloat)
         self.minThreshold.textEdited.connect(self.getThreshold)
 
-        #Initial labels
+        # Initial labels
         self.state.setText('Estado: Configuration')
         self.state.setStyleSheet('QLabel#state {color: gray}')
         self.setGeometry(0, 0, 2000, 1000)
@@ -220,94 +151,105 @@ class MyWindow(QtGui.QMainWindow, form_class,QObject):
         # Window is showed
         self.show()
 
-    ## Methods to get the configuration parameters
+    # Methods to get the configuration parameters
     def getRows(self):
-        self.rowsF = float(self.rows.text())
-        print self.rowsF
+        self.confParam['rowsF'] = float(self.rows.text())
 
     def getCols(self):
-        self.colsF = float(self.cols.text())
-        print self.colsF
+        self.confParam['colsF'] = float(self.cols.text())
 
     def getFocus(self):
-        self.focusF = float(self.focus.text())
-        print self.focusF
+        self.confParam['focusF'] = float(self.focus.text())
 
     def getCameras(self):
-        self.numCamerasF = int(self.numCameras.text())
-        print self.numCamerasF
+        self.confParam['numCamerasF'] = int(self.numCameras.text())
 
     def getDistPower(self):
-        self.distPowerF = float(self.distPower.text())
-        print self.distPowerF
+        self.confParam['distPowerF'] = float(self.distPower.text())
 
     def getPheromPower(self):
-        self.pheromPowerF = float(self.pheromPower.text())
-        print self.pheromPowerF
+        self.confParam['pheromPowerF'] = float(self.pheromPower.text())
 
     def getEvaporation(self):
-        self.evaporationF = float(self.evaporation.text())
-        print self.evaporationF
+        self.confParam['evaporationF'] = float(self.evaporation.text())
 
     def getAnts(self):
-        self.numAntsF = int(self.numAnts.text())
-        print self.numAntsF
+        self.confParam['numAntsF'] = int(self.numAnts.text())
 
     def getCrazy(self):
-        self.numCrazyF = float(self.numCrazy.text())
-        print self.numCrazyF
+        self.confParam['numCrazyF'] = float(self.numCrazy.text())
 
     def getThreshold(self):
-        self.minThresholdF = float(self.minThreshold.text())
-
-        print self.minThresholdF
+        self.confParam['minThresholdF'] = float(self.minThreshold.text())
 
     # Handle to update the draw space
-    def handle_draw(self):
-        print 'Señal draw recibida'
-        self.canvasSpace.update_figure()
-        self.canvasPheromone.update_figure()
-
-    def startMainWindow(self):
-        # Generation of an initial solution
-        self.space = Space(self.rowsF, self.colsF, self.focusF, self.numCamerasF, self.distPowerF,
-                           self.pheromPowerF, self.evaporationF, self.numAntsF, self.numCrazyF, self.minThresholdF, self.draw)
-
-        self.process.setText('Process:')
-        self.process.setStyleSheet('color: #1F1C1C')
-
-        # It start the space image
+    def handle_drawSpace(self):
+        self.canvasSpace.deleteLater()
         self.canvasSpace = MyCanvasSpace(
-            self.image, self.space, parent=None, width=self.rowsF, height=self.colsF, dpi=100, focus=self.focusF)
+            self.image, self.space, parent=None, width=self.confParam['rowsF'], height=self.confParam['colsF'], dpi=100, focus=self.confParam['focusF'])
         self.imagesLayout.addWidget(self.canvasSpace)
-        self.image.setFocus()
-        self.setCentralWidget(self.image)
+        sleep(0.5)
 
-        # It start the pheromone image
+    # Handle to update the draw pheromones
+    def handle_drawPher(self):
+        self.canvasPheromone.deleteLater()
         self.canvasPheromone = MyCanvasPheromone(
-            self.image, self.space, parent=None, width=30, height=self.colsF, dpi=100)
-        self.imagesLayout.addWidget(self.canvasPheromone)
-        self.pheromones.setFocus()
-        self.setCentralWidget(self.pheromones)
+            self.pheromones, self.space, parent=None, width=30, height=self.confParam['colsF'], dpi=100)
+        self.pheromLayout.addWidget(self.canvasPheromone)
+        sleep(0.5)
 
-        self.draw.connect(self.handle_draw)
+    # Handle to update the draw process
+    def handle_drawProcess(self):
+        for a in range(self.confParam['numAntsF']):
+            self.listProcess.setText(self.listProcess.text()+'H'+str(a)+'\n')
+
+    def startProcess(self):
+        self.drawProcess.connect(self.handle_drawProcess)
+        for a in range(self.confParam['numAntsF']):
+            self.listProcess.setText(self.listProcess.text()+'H'+str(a)+'\n')
 
     # Event of the start button
     def button_clicked(self):
-
-        self.startMainWindow()
-
-        # Evaluation
-        self.state.setText('Estado: Processing')
-        self.state.setStyleSheet('color: #AC660A')
+        # Generation of an initial solution
         try:
-            self.space.evaluateSpace()
-            #self.space.startAlgorithm()
-            self.state.setText('Estado: Finish')
-            self.state.setStyleSheet('color: #069019')
+            # self.space.evaluateSpace()
+            # self.space.startAlgorithm()
+            q = Queue.Queue()
+            loop_time = 1.0 / 60
+            self.space = Space(self.confParam, self.drawSpace,
+                               self.drawPher, q, loop_time)
+            self.space.setDaemon(True)
+            self.space.start()
+            self.state.setText('Estado: Processing')
+            self.state.setStyleSheet('color: #AC660A')
+            #self.state.setText('Estado: Finish')
+            # self.state.setStyleSheet('color: #069019')
         except Exception as inst:
             print type(inst)     # the exception instance
             print inst.args      # arguments stored in .args
             print inst
             self.state.setText('Estado: Processing error')
             self.state.setStyleSheet('color: #D20101')
+
+        self.process.setText('Process:')
+        self.process.setStyleSheet('color: #1F1C1C')
+
+        self.startProcess()
+
+        # It start the space image
+        self.canvasSpace = MyCanvasSpace(
+            self.image, self.space, parent=None, width=self.confParam['rowsF'], height=self.confParam['colsF'], dpi=100, focus=self.confParam['focusF'])
+        self.imagesLayout.addWidget(self.canvasSpace)
+        self.image.setFocus()
+        self.setCentralWidget(self.image)
+
+        # It start the pheromone image
+        self.canvasPheromone = MyCanvasPheromone(
+            self.pheromones, self.space, parent=None, width=30, height=self.confParam['colsF'], dpi=100)
+        self.pheromLayout.addWidget(self.canvasPheromone)
+        self.pheromones.setFocus()
+        self.setCentralWidget(self.pheromones)
+
+        # Connect signals to draw
+        self.drawSpace.connect(self.handle_drawSpace)
+        self.drawPher.connect(self.handle_drawPher)
