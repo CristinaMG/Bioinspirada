@@ -4,7 +4,6 @@
 import sys
 from Space import Space
 from PyQt4 import QtCore, QtGui, uic
-from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtCore import QObject, pyqtSignal
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends import qt_compat
@@ -28,7 +27,6 @@ class MyCanvasSpace(FigureCanvas):
         self.fig = Figure(figsize=(kwargs.get('width'),
                                    kwargs.get('height')), dpi=kwargs.pop('dpi'))
         self.axes = self.fig.add_subplot(111)
-        #self.fig1, self.axes = plt.subplots()
         self.axes.set_xlim((0, kwargs.get('height')))
         self.axes.set_ylim((0, kwargs.get('width')))
 
@@ -39,7 +37,6 @@ class MyCanvasSpace(FigureCanvas):
         self.setParent(kwargs.pop('parent'))
 
     def init_figure(self):
-        plt.ion()
         for cam in range(len(self.space.cameras)):
             self.axes.add_artist(plt.Circle((self.space.cameras[cam][1] * self.space.confParam['colsF'] / cols, self.space.cameras[cam][0]),
                                             self.focus, color=self.space.color[cam], fill=self.space.color[cam], alpha=0.5, clip_on=True))
@@ -101,7 +98,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         self.confParam = {'rowsF': 50.0, 'colsF': 100.0, 'focusF': 35.0, 'numCamerasF': 6, 'distPowerF': 0.5,
-                          'pheromPowerF': 0.5, 'evaporationF': 0.2, 'numAntsF': 5, 'numCrazyF': 5.0, 'minThresholdF': 1.0}
+                          'pheromPowerF': 0.5, 'evaporationF': 0.2, 'numAntsF': 5, 'numCrazyF': 5.0, 'minThresholdF': 2.0}
 
         onlyFloat = QDoubleValidator()
         onlyFloat.setNotation(QDoubleValidator.StandardNotation)
@@ -134,7 +131,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
         self.numCrazy.setText('5')
         self.numCrazy.setValidator(onlyFloat)
         self.numCrazy.textEdited.connect(self.getCrazy)
-        self.minThreshold.setText('1.0')
+        self.minThreshold.setText('2.0')
         self.minThreshold.setValidator(onlyFloat)
         self.minThreshold.textEdited.connect(self.getThreshold)
 
@@ -213,6 +210,7 @@ class MyWindow(QtGui.QMainWindow, form_class, QObject):
     def handle_drawEnd(self):
         self.state.setText('Estado: Finish')
         self.state.setStyleSheet('color: #069019')
+        self.result.setText('Solucion: \n')
         for i in range(self.confParam['numCamerasF']):
             self.result.setText(self.result.text()+str(self.space.cameras[i])+'\n')
 

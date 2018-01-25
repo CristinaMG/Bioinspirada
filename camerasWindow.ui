@@ -49,7 +49,7 @@
      <x>0</x>
      <y>10</y>
      <width>251</width>
-     <height>579</height>
+     <height>611</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="configuration">
@@ -114,7 +114,8 @@
     <item>
      <widget class="QLabel" name="label_5">
       <property name="text">
-       <string>Peso de la distancia entre cámaras</string>
+       <string>Peso de la distancia entre cámaras 
+ (Mayor: prioridad espacio vacío) </string>
       </property>
      </widget>
     </item>

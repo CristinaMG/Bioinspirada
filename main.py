@@ -13,4 +13,3 @@ if __name__ == '__main__':
     # New window
     win = MyWindow()
     sys.exit(app.exec_())
-    #app.exec_()

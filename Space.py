@@ -2,9 +2,7 @@
 import random
 import sys
 import math
-import copy
 import numpy as np
-import matplotlib.pyplot as plt
 from PyQt4 import QtCore, QtGui, uic
 from PyQt4.QtCore import QObject, pyqtSignal
 import threading
@@ -15,11 +13,8 @@ cols = 100
 
 # Colors that cameras can take
 colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
-# fig, ax = plt.subplots()  # note we must use plt.subplots, not plt.subplot
 
 # Main class that creates a set of cameras
-
-
 class Space(threading.Thread):
     def __init__(self, *args):
         self.confParam = args[0]
@@ -138,7 +133,6 @@ class Space(threading.Thread):
         fit = self.processDistMax() * \
             self.confParam['distPowerF'] + self.processEmptySpace() * \
             (1 - self.confParam['distPowerF'])
-        #print fit
         self.fit = fit
 
     # Function that places each camera in a new position based on its probability
@@ -178,11 +172,9 @@ class Space(threading.Thread):
         if x == 0.0:
             # Cam changes from wall depending on the pheromones
             if random.uniform(0, 1) < 0.05 * spaceNew.wall2[y]:
-                #print 'Camera change de 0 a 50'
                 x = spaceNew.confParam['rowsF']
         else:
             if random.uniform(0, 1) < 0.05 * spaceNew.wall1[y]:
-                #print 'Camera change de 50 a 0'
                 x = 0.0
 
         return (x, y)
@@ -205,7 +197,6 @@ class Space(threading.Thread):
 
     # Algorithm that creates a space taking into account the data of the previous
     def createSpace(self, crazy):
-        #print 'New space'
         spaceNew = self.copySpace()
         for i in range(spaceNew.confParam['numCamerasF']):
             # You get the position of each camera to build te path
@@ -219,10 +210,8 @@ class Space(threading.Thread):
     # Mark the pheromones of the route
     def markPheromones(self, crazy):
         if crazy == 0:
-            # #print 'markPheromones'
             input = 1
         else:  # if it is a crazy ant its input is bigger
-            # #print 'markPheromones crazy'
             input = 5
 
         for i in range(self.confParam['numCamerasF']):
@@ -233,7 +222,6 @@ class Space(threading.Thread):
 
     # Evaporates the trace of pheromones in each iteration
     def evaporatePheromones(self):
-        #print 'Evaporacion'
         for i in range(cols):
             self.wall1[i] *= (1 - self.confParam['evaporationF'])
             if self.wall1[i] < 0.01:
@@ -260,37 +248,26 @@ class Space(threading.Thread):
 
     # Ants colony algorithm that creates new ants until finding better solutions
     def ants(self):
-        #print '-------------------- hormigas ------------------ '
         crazy = 0
         # For each ant
         for i in range(self.confParam['numAntsF']):
             # I mark if it is crazy
             if random.uniform(0, 1) < (self.confParam['numCrazyF'] / 100):
                 crazy = 1
-                #print 'crazy'
 
             # I create a new space based in the previous
-            #print 'space 0', self.cameras, self.fit
             spaceNew = self.createSpace(crazy)
             # I evaluated it
             spaceNew.evaluateSpace()
-            #print 'spaceNew', spaceNew.cameras, spaceNew.fit
             # If the new one is better I keep it and frame it with pheromones
-            #print 'Fit Spacenew', spaceNew.fit, 'fit self', self.fit
             if spaceNew.fit < self.fit:
                 self.updateSpace(spaceNew)
-                #print 'space 2', self.cameras, self.fit
                 self.markPheromones(crazy)
-                #print '<<<<<<<<<<<< Espacio mejor', self.cameras, self.fit
                 # Emit drawSpace signal
                 self.drawSpace.emit()
                 sleep(1)
-                # self.drawSpace()  # I only paint the spaces that are best
-
-            #print 'space 4', self.cameras, self.fit
 
             crazy = 0
-
         # When all the ants are finished, I evaporate the pheromones
         self.evaporatePheromones()
         return self
